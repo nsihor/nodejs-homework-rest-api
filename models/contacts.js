@@ -37,12 +37,12 @@ const removeContact = async (contactId) => {
 };
 
 const addContact = async (body) => {
-  const prevContacts = await listContacts();
+  const contacts = await listContacts();
   const addedContact = {
     id: nanoid(),
     ...body,
   };
-  const contacts = [...prevContacts, addedContact];
+  contacts.push(addedContact);
 
   await fs.writeFile(contactsPath, JSON.stringify(contacts, null, 2));
 
