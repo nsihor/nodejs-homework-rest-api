@@ -16,9 +16,7 @@ const router = express.Router("api/contacts");
 
 router.get("/", async (req, res, next) => {
   try {
-    console.log("start");
     const contacts = await listContacts();
-    console.log("contacts:", contacts);
 
     res.status(200).json(contacts);
   } catch (error) {
