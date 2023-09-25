@@ -12,4 +12,8 @@ const putSchema = Joi.object({
   phone: Joi.string(),
 }).or("name", "email", "phone");
 
-module.exports = { addSchema, putSchema };
+const changeFavoriteSchema = Joi.object({
+  favorite: Joi.bool().required(),
+});
+
+module.exports = { addSchema, putSchema, changeFavoriteSchema };
