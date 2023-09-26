@@ -5,8 +5,12 @@ const {
   removeContact,
   addContact,
   updateContact,
-} = require("../../models/contacts");
-const { addSchema, putSchema } = require("../../schema/schema");
+} = require("../../controllers/contacts");
+const {
+  addSchema,
+  putSchema,
+  changeFavoriteSchema,
+} = require("../../schema/schema");
 
 const router = express.Router("api/contacts");
 
@@ -70,6 +74,24 @@ router.put("/:contactId", async (req, res, next) => {
 
     if (error) {
       return res.status(400).json({ message: "missing fields" });
+    }
+
+    const contact = await updateContact(req.params.contactId, req.body);
+
+    if (!contact) return next();
+
+    res.json(contact);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.patch("/:contactId/favorite", async (req, res, next) => {
+  try {
+    const { error } = changeFavoriteSchema.validate(req.body);
+
+    if (error) {
+      return res.status(400).json({ message: "missing field favorite" });
     }
 
     const contact = await updateContact(req.params.contactId, req.body);
