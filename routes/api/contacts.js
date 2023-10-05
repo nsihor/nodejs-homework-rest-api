@@ -1,4 +1,6 @@
 const express = require("express");
+const authorization = require("../../middlewares/authorization");
+const HttpError = require("../../helpers/HttpError");
 const {
   listContacts,
   getContactById,
@@ -10,13 +12,15 @@ const {
   addSchema,
   putSchema,
   changeFavoriteSchema,
-} = require("../../schema/schema");
+} = require("../../models/contact");
 
 const router = express.Router("api/contacts");
 
-router.get("/", async (req, res, next) => {
+router.get("/", authorization, async (req, res, next) => {
   try {
-    const contacts = await listContacts();
+    const { page = 1, limit = 2, favorite } = req.query;
+
+    const contacts = await listContacts(req.user.id, page, limit, favorite);
 
     res.status(200).json(contacts);
   } catch (error) {
@@ -24,7 +28,7 @@ router.get("/", async (req, res, next) => {
   }
 });
 
-router.get("/:contactId", async (req, res, next) => {
+router.get("/:contactId", authorization, async (req, res, next) => {
   try {
     const contact = await getContactById(req.params.contactId);
 
@@ -38,15 +42,13 @@ router.get("/:contactId", async (req, res, next) => {
   }
 });
 
-router.post("/", async (req, res, next) => {
+router.post("/", authorization, async (req, res, next) => {
   try {
     const { error } = addSchema.validate(req.body);
 
-    if (error) {
-      return res.status(400).json({ message: "missing required name field" });
-    }
+    if (error) return next(HttpError(400, "missing required name field"));
 
-    const contact = await addContact(req.body);
+    const contact = await addContact(req.body, req.user.id);
 
     res.status(201).json(contact);
   } catch (error) {
@@ -54,7 +56,7 @@ router.post("/", async (req, res, next) => {
   }
 });
 
-router.delete("/:contactId", async (req, res, next) => {
+router.delete("/:contactId", authorization, async (req, res, next) => {
   try {
     const deleteMessage = await removeContact(req.params.contactId);
 
@@ -68,13 +70,11 @@ router.delete("/:contactId", async (req, res, next) => {
   }
 });
 
-router.put("/:contactId", async (req, res, next) => {
+router.put("/:contactId", authorization, async (req, res, next) => {
   try {
     const { error } = putSchema.validate(req.body);
 
-    if (error) {
-      return res.status(400).json({ message: "missing fields" });
-    }
+    if (error) return next(HttpError(400, "missing fields"));
 
     const contact = await updateContact(req.params.contactId, req.body);
 
@@ -86,13 +86,11 @@ router.put("/:contactId", async (req, res, next) => {
   }
 });
 
-router.patch("/:contactId/favorite", async (req, res, next) => {
+router.patch("/:contactId/favorite", authorization, async (req, res, next) => {
   try {
     const { error } = changeFavoriteSchema.validate(req.body);
 
-    if (error) {
-      return res.status(400).json({ message: "missing field favorite" });
-    }
+    if (error) return next(HttpError(400, "missing field favorite"));
 
     const contact = await updateContact(req.params.contactId, req.body);
 
