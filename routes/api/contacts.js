@@ -30,7 +30,7 @@ router.get("/", authorization, async (req, res, next) => {
 
 router.get("/:contactId", authorization, async (req, res, next) => {
   try {
-    const contact = await getContactById(req.params.contactId);
+    const contact = await getContactById(req.params.contactId, req.user.id);
 
     if (!contact) {
       next();
@@ -58,7 +58,10 @@ router.post("/", authorization, async (req, res, next) => {
 
 router.delete("/:contactId", authorization, async (req, res, next) => {
   try {
-    const deleteMessage = await removeContact(req.params.contactId);
+    const deleteMessage = await removeContact(
+      req.params.contactId,
+      req.user.id
+    );
 
     if (!deleteMessage) {
       next();
@@ -76,7 +79,11 @@ router.put("/:contactId", authorization, async (req, res, next) => {
 
     if (error) return next(HttpError(400, "missing fields"));
 
-    const contact = await updateContact(req.params.contactId, req.body);
+    const contact = await updateContact(
+      req.params.contactId,
+      req.body,
+      req.user.id
+    );
 
     if (!contact) return next();
 
@@ -92,7 +99,11 @@ router.patch("/:contactId/favorite", authorization, async (req, res, next) => {
 
     if (error) return next(HttpError(400, "missing field favorite"));
 
-    const contact = await updateContact(req.params.contactId, req.body);
+    const contact = await updateContact(
+      req.params.contactId,
+      req.body,
+      req.user.id
+    );
 
     if (!contact) return next();
 
