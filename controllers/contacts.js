@@ -16,7 +16,7 @@ const listContacts = async (owner, page, limit, favorite) => {
 };
 
 const getContactById = async (contactId, owner) => {
-  const contact = await Contact.find({ _id: contactId, owner });
+  const contact = await Contact.findOne({ _id: contactId, owner });
 
   if (!contact) return null;
 
@@ -24,9 +24,9 @@ const getContactById = async (contactId, owner) => {
 };
 
 const removeContact = async (contactId, owner) => {
-  const contact = await Contact.find({ _id: contactId, owner });
+  const contact = await Contact.findOne({ _id: contactId, owner });
 
-  if (contact.length === 0) return null;
+  if (!contact) return null;
 
   await Contact.findOneAndDelete({ _id: contactId, owner });
 
