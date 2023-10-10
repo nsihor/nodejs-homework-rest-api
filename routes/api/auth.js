@@ -1,12 +1,14 @@
 const express = require("express");
 const HttpError = require("../../helpers/HttpError");
 const authorization = require("../../middlewares/authorization");
+const upload = require("../../middlewares/upload");
 const {
   register,
   login,
   getCurrent,
   logout,
   updateSubscription,
+  updateAvatar,
 } = require("../../controllers/auth");
 const {
   userJoiSchema,
@@ -50,11 +52,11 @@ router.post("/login", async (req, res, next) => {
 
     if (error) return next(HttpError(400));
 
-    const token = await login(req.body);
+    const user = await login(req.body);
 
-    if (!token) return next(HttpError(401, "Email or password is wrong"));
+    if (!user.token) return next(HttpError(401, "Email or password is wrong"));
 
-    res.status(200).json(token);
+    res.status(200).json(user);
   } catch (error) {
     next(error);
   }
@@ -89,5 +91,23 @@ router.patch("/", authorization, async (req, res, next) => {
     next(error);
   }
 });
+
+router.patch(
+  "/avatars",
+  authorization,
+  upload.single("avatar"),
+  async (req, res, next) => {
+    try {
+      console.log("req.file:", req.file);
+
+      const avatarUrl = await updateAvatar(req.user.id, req.file);
+
+      res.json({ avatarUrl });
+    } catch (error) {
+      console.log(error);
+      next(error);
+    }
+  }
+);
 
 module.exports = router;
