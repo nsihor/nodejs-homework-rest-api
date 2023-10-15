@@ -9,10 +9,13 @@ const {
   logout,
   updateSubscription,
   updateAvatar,
+  verifyEmail,
+  resendVerifyEmail,
 } = require("../../controllers/auth");
 const {
   userJoiSchema,
   updateSubscriptionJoiSchema,
+  emailJoiSchema,
 } = require("../../models/user");
 
 const router = express.Router("api/users");
@@ -29,6 +32,46 @@ router.post("/register", async (req, res, next) => {
       return next(HttpError(409, newContact.message));
 
     res.status(201).json(newContact);
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+});
+
+router.get("/verify/:verificationToken", async (req, res, next) => {
+  try {
+    const verify = await verifyEmail(req.params.verificationToken);
+
+    if (verify === "User not found") {
+      return next(HttpError(404, verify.message));
+    }
+
+    res.json(verify);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/verify", async (req, res, next) => {
+  try {
+    const { error } = emailJoiSchema.validate(req.body);
+    if (error) {
+      return next(HttpError(400, "missing required field email"));
+    }
+
+    const verify = await resendVerifyEmail(req.body.email);
+
+    if (!verify) {
+      return next();
+    }
+
+    if (verify.message === "Verification has already been passed") {
+      return next(HttpError(400, verify.message));
+    }
+
+    res.json({
+      message: "Verification email sent",
+    });
   } catch (error) {
     next(error);
   }
@@ -54,7 +97,8 @@ router.post("/login", async (req, res, next) => {
 
     const user = await login(req.body);
 
-    if (!user.token) return next(HttpError(401, "Email or password is wrong"));
+    if (!user || !user.token)
+      return next(HttpError(401, "Email or password is wrong"));
 
     res.status(200).json(user);
   } catch (error) {
