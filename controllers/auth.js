@@ -1,12 +1,14 @@
 const { User } = require("../models/user");
+const sendEmail = require("../helpers/sendEmail");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const gravatar = require("gravatar");
 const path = require("path");
 const Jimp = require("jimp");
+const { nanoid } = require("nanoid");
 require("dotenv").config();
 
-const { SECRET_KEY } = process.env;
+const { SECRET_KEY, BASE_URL } = process.env;
 
 const avatarsDir = path.join(__dirname, "../", "public", "avatars");
 
@@ -23,13 +25,63 @@ const register = async (body) => {
 
   const avatarUrl = gravatar.url(email);
 
+  console.log(nanoid());
+
+  const verificationToken = nanoid();
+
   const newUser = await User.create({
     ...body,
     password: hashPassword,
     avatarUrl,
+    verificationToken,
   });
 
+  const verifyEmailSendOptions = {
+    to: email,
+    subject: "Verify Email",
+    html: `<a target="_blank" href="${BASE_URL}/api/users/verify/${verificationToken}">Click for verify</a>`,
+  };
+
+  sendEmail(verifyEmailSendOptions);
+
   return { email: newUser.email, message: "User created" };
+};
+
+const verifyEmail = async (verificationToken) => {
+  const user = await User.findOne({ verificationToken });
+
+  if (!user) {
+    return { message: "User not found" };
+  }
+
+  await User.findByIdAndUpdate(user._id, {
+    verify: true,
+    verificationToken: null,
+  });
+
+  return { message: "Verification successful" };
+};
+
+const resendVerifyEmail = async (email) => {
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    return null;
+  }
+
+  if (user.verify) {
+    return { message: "Verification has already been passed" };
+  }
+
+  const verifyEmailSendOptions = {
+    to: email,
+    subject: "Verify Email",
+    html: `<a target="_blank" href="${BASE_URL}/api/users/verify/${user.verificationToken}">Click for verify</a>`,
+  };
+
+  sendEmail(verifyEmailSendOptions);
+
+  return true;
 };
 
 const login = async (body) => {
@@ -37,7 +89,7 @@ const login = async (body) => {
 
   const user = await User.findOne({ email });
 
-  if (!user) {
+  if (!user || !user.verify) {
     return null;
   }
 
@@ -86,4 +138,6 @@ module.exports = {
   logout,
   updateSubscription,
   updateAvatar,
+  verifyEmail,
+  resendVerifyEmail,
 };
